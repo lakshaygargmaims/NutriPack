@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Typecheck · Unit · Build · API integration
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Production build
+        run: npm run build
+
+      # The API integration suite and e2e checks run against the REAL built
+      # server (not dev mode), mirroring what actually ships.
+      - name: Start production server
+        run: |
+          npm run start &
+          echo "SERVER_PID=$!" >> "$GITHUB_ENV"
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:3100/api/health > /dev/null; then
+              echo "server ready after ${i}s"; break
+            fi
+            sleep 1
+          done
+          curl -sf http://localhost:3100/api/health
+
+      - name: API integration tests (auth, authZ, uploads, error handling)
+        run: node tests/api.test.mjs
+
+      - name: Seed demo data
+        run: npm run seed
+
+      - name: E2E acceptance suite
+        run: npm run e2e
+
+      - name: Behavioural suite (complete-solution engine)
+        run: node scripts/verify-solution.mjs
+
+      - name: Stop server
+        if: always()
+        run: |
+          if [ -n "$SERVER_PID" ]; then kill "$SERVER_PID" 2>/dev/null || true; fi

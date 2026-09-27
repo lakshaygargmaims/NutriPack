@@ -1,0 +1,12 @@
+node_modules/
+.next/
+out/
+data/nutripack.json
+data/*.json
+data/uploads/
+*.tsbuildinfo
+.DS_Store
+server.log
+server.err
+.env
+.env.local
