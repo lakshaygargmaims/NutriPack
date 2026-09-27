@@ -15,6 +15,22 @@ const registerSchema = z.object({
   organization: z.string().optional(),
 });
 
+/**
+ * Token issuance with a clean failure mode: if AUTH_SECRET is missing the
+ * signer throws — return a JSON 503 naming the problem instead of letting an
+ * opaque HTML 500 reach API clients (the bug this once caused in CI).
+ */
+function loginOk(user: StoredUser, safe: object) {
+  try {
+    return NextResponse.json({ ok: true, token: createToken(user), user: safe });
+  } catch {
+    return NextResponse.json(
+      { ok: false, errors: ['Authentication is not configured on this server (missing AUTH_SECRET).'] },
+      { status: 503 },
+    );
+  }
+}
+
 export async function POST(req: Request) {
   const body = await req.json().catch(() => null);
   if (!body) return NextResponse.json({ ok: false, errors: ['Invalid JSON'] }, { status: 400 });
@@ -34,7 +50,7 @@ export async function POST(req: Request) {
     });
     audit(email, 'auth.register');
     const safe = { id: created.id, name: created.name, email: created.email, role: created.role, organization: created.organization, createdAt: created.createdAt };
-    return NextResponse.json({ ok: true, token: createToken(created), user: safe });
+    return loginOk(created, safe);
   }
 
   const parsed = loginSchema.safeParse(body);
@@ -63,11 +79,20 @@ export async function POST(req: Request) {
 
   audit(email, 'auth.login');
   const safe = { id: user.id, name: user.name, email: user.email, role: user.role, organization: user.organization, createdAt: user.createdAt };
-  return NextResponse.json({ ok: true, token: createToken(user), user: safe });
+  return loginOk(user, safe);
 }
 
 export async function GET(req: Request) {
-  const user = verifyToken(parseAuthHeader(req));
+  let user = null;
+  try {
+    user = verifyToken(parseAuthHeader(req));
+  } catch {
+    // AUTH_SECRET missing — signer threw. Report config problem, not 401.
+    return NextResponse.json(
+      { ok: false, errors: ['Authentication is not configured on this server (missing AUTH_SECRET).'] },
+      { status: 503 },
+    );
+  }
   if (!user) return NextResponse.json({ ok: false, errors: ['Not authenticated'] }, { status: 401 });
   return NextResponse.json({ ok: true, user });
 }

@@ -61,15 +61,15 @@ async function main() {
 
   console.log('\n-- Authentication --');
   const bad = await req('POST', '/api/auth', { body: { action: 'login', email: 'analyst@nutripack.demo', password: 'wrong-pass' } });
-  ok('wrong password → 401 + generic message', bad.status === 401 && /invalid credentials/i.test(bad.data.errors[0]));
+  ok('wrong password → 401 + generic message', bad.status === 401 && /invalid credentials/i.test(bad.data?.errors?.[0] ?? ''), `status ${bad.status}`);
   ok('401 does not leak hash fields', !JSON.stringify(bad.data).includes('passwordHash'));
 
   const login = await req('POST', '/api/auth', { body: { action: 'login', email: 'analyst@nutripack.demo', password: 'demo123' } });
-  ok('valid login → 200 + token', login.status === 200 && !!login.data.token);
-  const analyst = login.data.token;
+  ok('valid login → 200 + token', login.status === 200 && !!login.data?.token, `status ${login.status}${login.data ? '' : ', non-JSON body'}`);
+  const analyst = login.data?.token;
 
   const me = await req('GET', '/api/auth', { token: analyst });
-  ok('GET /api/auth with token → user', me.status === 200 && me.data.user.email === 'analyst@nutripack.demo');
+  ok('GET /api/auth with token → user', me.status === 200 && me.data?.user?.email === 'analyst@nutripack.demo', `status ${me.status}`);
   const meNoTok = await req('GET', '/api/auth');
   ok('GET /api/auth without token → 401', meNoTok.status === 401);
 
@@ -88,16 +88,16 @@ async function main() {
   const adminAnalyst = await req('GET', '/api/admin', { token: analyst });
   ok('admin GET as analyst → 403', adminAnalyst.status === 403);
   const adminLogin = await req('POST', '/api/auth', { body: { action: 'login', email: 'admin@nutripack.demo', password: 'demo123' } });
-  ok('admin login ok', adminLogin.status === 200);
-  const adminOk = await req('GET', '/api/admin', { token: adminLogin.data.token });
-  ok('admin GET as admin → 200', adminOk.status === 200 && adminOk.data.ok);
+  ok('admin login ok', adminLogin.status === 200 && !!adminLogin.data?.token, `status ${adminLogin.status}`);
+  const adminOk = await req('GET', '/api/admin', { token: adminLogin.data?.token });
+  ok('admin GET as admin → 200', adminOk.status === 200 && adminOk.data?.ok);
 
   console.log('\n-- Analysis endpoint: validation & lifecycle --');
   const okBody = { commodityId: 'tomato', storage: { temperatureC: 8, rhPct: 85, targetShelfLifeDays: 12, environment: 'refrigerated' }, transport: {}, business: {}, priority: 'balanced' };
   const anon = await req('POST', '/api/analysis', { body: okBody });
   ok('anonymous analysis allowed (public engine) 200', anon.status === 200 && anon.data.ok);
   const authed = await req('POST', '/api/analysis', { body: okBody, token: analyst });
-  ok('authenticated analysis → projectId', authed.status === 200 && !!authed.data.projectId);
+  ok('authenticated analysis → projectId', authed.status === 200 && !!authed.data?.projectId, `status ${authed.status}`);
 
   const badBody = await req('POST', '/api/analysis', { body: { commodityId: 'tomato', storage: { temperatureC: 999 }, priority: 'balanced' } });
   ok('temperature 999 → 400 with field name', badBody.status === 400 && /temperatureC/i.test(JSON.stringify(badBody.data)));
@@ -109,7 +109,7 @@ async function main() {
   ok('unknown commodity → 400', unknownFood.status === 400);
 
   console.log('\n-- Project ownership & 404s --');
-  const pid = authed.data.projectId;
+  const pid = authed.data?.projectId ?? 'missing';
   const getProj = await req('GET', `/api/analysis/${pid}`);
   ok('GET project 200', getProj.status === 200);
   const noAuthDelete = await req('DELETE', `/api/analysis/${pid}`);
@@ -123,10 +123,10 @@ async function main() {
   const expAnon = await req('POST', '/api/validation', { body: { kind: 'experiment', commodityId: 'tomato' } });
   ok('experiment create without token → 401', expAnon.status === 401);
   const expOk = await req('POST', '/api/validation', { body: { kind: 'experiment', commodityId: 'tomato', materialId: 'ldpe', predictedLow: 8, predictedHigh: 12 }, token: analyst });
-  ok('experiment create with token → 200', expOk.status === 200 && expOk.data.experiment?.id);
-  const obsOk = await req('POST', '/api/validation', { body: { experimentId: expOk.data.experiment.id, day: 1, spoilageScore: 5 }, token: analyst });
-  ok('observation with token → 200 + closed-loop comparison', obsOk.status === 200 && obsOk.data.comparison !== null);
-  const obsBad = await req('POST', '/api/validation', { body: { experimentId: expOk.data.experiment.id, day: 9999 }, token: analyst });
+  ok('experiment create with token → 200', expOk.status === 200 && !!expOk.data?.experiment?.id, `status ${expOk.status}`);
+  const obsOk = await req('POST', '/api/validation', { body: { experimentId: expOk.data?.experiment?.id ?? 'missing', day: 1, spoilageScore: 5 }, token: analyst });
+  ok('observation with token → 200 + closed-loop comparison', obsOk.status === 200 && obsOk.data?.comparison !== null, `status ${obsOk.status}`);
+  const obsBad = await req('POST', '/api/validation', { body: { experimentId: expOk.data?.experiment?.id ?? 'missing', day: 9999 }, token: analyst });
   ok('observation day 9999 → 400', obsBad.status === 400);
 
   console.log('\n-- Upload endpoint security --');

@@ -14,6 +14,10 @@ jobs:
     name: Typecheck · Unit · Build · API integration
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      # Test-only signing key so login/token flows work on a fresh runner.
+      # Never a real secret: production sets its own AUTH_SECRET (Railway var).
+      AUTH_SECRET: ci-test-only-4b1d8f36e5a9c0b7d2f4e6a8c9e0b1a2
 
     steps:
       - uses: actions/checkout@v4
