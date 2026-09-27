@@ -50,6 +50,10 @@ jobs:
           done
           curl -sf http://localhost:3100/api/health
 
+      - name: Diagnostic probe (boot + health + auth round-trip)
+        if: always()
+        run: node tests/ci-probe.mjs
+
       - name: API integration tests (auth, authZ, uploads, error handling)
         run: node tests/api.test.mjs
 
