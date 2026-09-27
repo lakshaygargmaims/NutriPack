@@ -10,7 +10,9 @@ import { hashPassword } from './passwords';
  * interface mirrors the entity design so migration is mechanical.
  */
 
-const DATA_DIR = path.join(process.cwd(), 'data');
+// On Railway a volume is mounted (path exposed via RAILWAY_VOLUME_MOUNT_PATH);
+// off-platform we keep the store inside ./data next to the app.
+const DATA_DIR = process.env.RAILWAY_VOLUME_MOUNT_PATH || path.join(process.cwd(), 'data');
 const DB_FILE = path.join(DATA_DIR, 'nutripack.json');
 const UPLOAD_DIR = path.join(DATA_DIR, 'uploads');
 

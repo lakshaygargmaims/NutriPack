@@ -63,6 +63,26 @@ Back up the `data/` volume; the store writes atomically (tmp + rename). For
 multi-replica deployments migrate to PostgreSQL first (DATABASE.md) — the JSON
 store is single-node by design.
 
+On Railway the store reads `RAILWAY_VOLUME_MOUNT_PATH` (a volume attached at
+`/data`) instead of `./data`, so projects and uploads survive redeploys. Off
+platform the path falls back to `./data` unchanged.
+
+## GitHub → Railway auto-deploy
+
+The `nutripack-web` service is connected to `lakshaygargmaims/NutriPack`
+(`serviceConnect`, branch `main`), so **every push to `main` builds and deploys
+automatically** — no CLI upload needed. The deployment trigger has
+`checkSuites: true`, meaning Railway waits for the GitHub Actions CI workflow
+(typecheck → unit → build → API/e2e/behavioural suites) to pass before it ships;
+a red build never reaches production.
+
+Verified end-to-end: connection trigger `956ff400-c73d-481f-80ca-66487600c284`,
+first GitHub-built deployment succeeded, live URL healthy afterwards.
+
+To change the watched branch or detach: Railway dashboard → service →
+Settings → Source, or `serviceDisconnect` / `deploymentTriggerUpdate` via
+`railway api`.
+
 ## Security checklist
 
 - [x] Passwords stored as scrypt hashes (never plaintext).
