@@ -1,11 +1,10 @@
 # NutriPack
-
 **Intelligent Food Packaging Recommendation & Optimization System**
 Smart India Hackathon 2026 — Problem Statement **SIH26236**
 
 > *"Intelligent Packaging. Smarter Decisions."**
 
-NutriPack (formerly prototyped as PackWise AI) is a decision-support platform that connects **food properties → packaging
+NutriPack is a decision-support platform that connects **food properties → packaging
 requirements → AI material recommendation → packaging digital twin → shelf-life
 estimation → cost + sustainability → validation**. It is built as a complete
 product: working engine, working APIs, working UI, working persistence — no dead
@@ -166,4 +165,4 @@ economics are explainable heuristic models. Details: `AI_MODEL.md`.
 
 Verified data partnerships (film suppliers, labs) · real ML layer trained on
 Validation-Lab closures · perishable-goods route/weather integration · multi-language
-UI for FPOs · regulatory label checks (FSSAI) · printer-ready regional cost tables.
+UI for FPOs · regulatory label checks (FSSAI) · printer-ready regional cost tables.
