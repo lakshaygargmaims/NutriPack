@@ -76,8 +76,12 @@ automatically** — no CLI upload needed. The deployment trigger has
 (typecheck → unit → build → API/e2e/behavioural suites) to pass before it ships;
 a red build never reaches production.
 
-Verified end-to-end: connection trigger `956ff400-c73d-481f-80ca-66487600c284`,
-first GitHub-built deployment succeeded, live URL healthy afterwards.
+Verified end-to-end with timestamps: trigger
+`956ff400-c73d-481f-80ca-66487600c284` (github, main); on push `2a6df1d`
+Railway created the deployment at 09:36:02Z but only scheduled the build at
+09:37:11Z — after the CI check run completed green at 09:37:06Z — proving the
+check gate holds. Volume persistence proven by redeploy `11dbd4f1`: seeded
+projects (5) survived a fresh container.
 
 To change the watched branch or detach: Railway dashboard → service →
 Settings → Source, or `serviceDisconnect` / `deploymentTriggerUpdate` via
